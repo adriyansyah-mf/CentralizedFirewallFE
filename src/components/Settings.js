@@ -3,7 +3,6 @@ import styled from 'styled-components';
 import { NavLink } from 'react-router-dom';
 import api from '../utils/api';
 
-// Reuse the DashboardContainer and Sidebar styles
 const DashboardContainer = styled.div`
   display: flex;
   min-height: 100vh;
@@ -119,8 +118,11 @@ const Settings = () => {
     password: ''
   });
   const [updateSuccess, setUpdateSuccess] = useState(false);
+  const [groupName, setGroupName] = useState('');
+  const [createGroupLoading, setCreateGroupLoading] = useState(false);
+  const [createGroupError, setCreateGroupError] = useState('');
+  const [createdGroupId, setCreatedGroupId] = useState(null);
 
-  // Fetch API key and user details
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -131,7 +133,7 @@ const Settings = () => {
         setApiKey(apiKeyResponse.data.apikey);
         setUserDetails({
           name: userResponse.data.name,
-          password: '' // Password is not returned by the API
+          password: ''
         });
         setLoading(false);
       } catch (err) {
@@ -175,23 +177,43 @@ const Settings = () => {
     }
   };
 
+  const handleCreateGroup = async () => {
+    setCreateGroupError('');
+    setCreatedGroupId(null);
+
+    if (!groupName.trim()) {
+      setCreateGroupError('Group name is required');
+      return;
+    }
+
+    setCreateGroupLoading(true);
+    try {
+      const response = await api.post('/admin/add-group', null, {
+        params: { name: groupName }
+      });
+      setCreatedGroupId(response.data);
+      setGroupName('');
+    } catch (err) {
+      setCreateGroupError('Failed to create group');
+    } finally {
+      setCreateGroupLoading(false);
+    }
+  };
+
   if (loading) return <div>Loading settings...</div>;
 
   return (
     <DashboardContainer>
       <Sidebar>
         <h2 style={{ padding: '0 1rem', marginBottom: '2rem' }}>Firewall Manager</h2>
-        
         <MenuItem to="/">
           <MenuIcon>📊</MenuIcon>
           Dashboard
         </MenuItem>
-        
         <MenuItem to="/agents">
           <MenuIcon>🖥️</MenuIcon>
           Agent List
         </MenuItem>
-        
         <MenuItem to="/suspicious-ips">
           <MenuIcon>⚠️</MenuIcon>
           Suspicious IPs
@@ -200,7 +222,6 @@ const Settings = () => {
           <MenuIcon>🔒</MenuIcon>
           Blocked IPs
         </MenuItem>
-        
         <MenuItem to="/settings">
           <MenuIcon>⚙️</MenuIcon>
           Settings
@@ -214,7 +235,6 @@ const Settings = () => {
           <Section>
             <h2>API Key Management</h2>
             {error && <div style={{ color: '#e53e3e', marginBottom: '1rem' }}>{error}</div>}
-            
             <ApiKeyDisplay>
               <ApiKeyText>{apiKey || 'No API key generated yet'}</ApiKeyText>
               <Button 
@@ -224,7 +244,6 @@ const Settings = () => {
                 {generating ? 'Generating...' : 'Generate New API Key'}
               </Button>
             </ApiKeyDisplay>
-            
             <div style={{ marginTop: '1rem', color: '#718096' }}>
               <small>
                 Note: Generating a new API key will invalidate the previous one.
@@ -240,7 +259,6 @@ const Settings = () => {
               </div>
             )}
             {error && <div style={{ color: '#e53e3e', marginBottom: '1rem' }}>{error}</div>}
-            
             <FormGroup>
               <label>Name</label>
               <Input
@@ -250,7 +268,6 @@ const Settings = () => {
                 onChange={(e) => setUserDetails({ ...userDetails, name: e.target.value })}
               />
             </FormGroup>
-            
             <FormGroup>
               <label>Password</label>
               <Input
@@ -260,11 +277,36 @@ const Settings = () => {
                 onChange={(e) => setUserDetails({ ...userDetails, password: e.target.value })}
               />
             </FormGroup>
-            
             <Button onClick={handleUpdateUserDetails}>
               Update User Details
             </Button>
           </Section>
+
+          <Section>
+            <h2>Group Management</h2>
+            {createGroupError && <div style={{ color: '#e53e3e', marginBottom: '1rem' }}>{createGroupError}</div>}
+            {createdGroupId && (
+              <div style={{ color: '#4fd1c5', marginBottom: '1rem' }}>
+                Group created successfully! ID: {createdGroupId}
+              </div>
+            )}
+            <FormGroup>
+              <label>Group Name</label>
+              <Input
+                type="text"
+                placeholder="Enter group name"
+                value={groupName}
+                onChange={(e) => setGroupName(e.target.value)}
+              />
+            </FormGroup>
+            <Button 
+              onClick={handleCreateGroup}
+              disabled={createGroupLoading}
+            >
+              {createGroupLoading ? 'Creating...' : 'Create New Group'}
+            </Button>
+          </Section>
+
         </SettingsContainer>
       </MainContent>
     </DashboardContainer>
