@@ -3,7 +3,6 @@ import styled, { keyframes } from 'styled-components';
 import { NavLink } from 'react-router-dom';
 import api from '../utils/api';
 
-// Reuse the DashboardContainer and Sidebar styles
 const DashboardContainer = styled.div`
   display: flex;
   min-height: 100vh;
@@ -115,6 +114,11 @@ const Button = styled.button`
   &:hover {
     background-color: #38a89d;
   }
+
+  &:disabled {
+    background-color: #a0aec0;
+    cursor: not-allowed;
+  }
 `;
 
 const ActionButton = styled.button`
@@ -162,14 +166,9 @@ const CommentCell = styled(TableCell)`
   text-overflow: ellipsis;
 `;
 
-// Spinner Animation
 const spin = keyframes`
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 `;
 
 const Spinner = styled.div`
@@ -196,6 +195,22 @@ const LoadingText = styled.p`
   color: #2a3042;
 `;
 
+const PaginationContainer = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1rem;
+  padding: 1rem;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+`;
+
+const PageInfo = styled.span`
+  margin-right: 1rem;
+  color: #2a3042;
+`;
+
 const SuspiciousIPs = () => {
   const [ips, setIps] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -203,6 +218,11 @@ const SuspiciousIPs = () => {
   const [hostname, setHostname] = useState('');
   const [isBlocked, setIsBlocked] = useState('');
   const [enrichmentData, setEnrichmentData] = useState({});
+  const [pagination, setPagination] = useState({
+    page: 1,
+    per_page: 10,
+    total: 0
+  });
 
   const fetchCountryData = async (ip) => {
     try {
@@ -217,21 +237,31 @@ const SuspiciousIPs = () => {
 
   const fetchIps = async () => {
     try {
-      const params = new URLSearchParams();
+      setLoading(true);
+      const params = new URLSearchParams({
+        page: pagination.page,
+        per_page: pagination.per_page
+      });
+      
       if (hostname) params.append('hostname', hostname);
       if (isBlocked !== '') params.append('is_blocked', isBlocked);
 
       const response = await api.get('/admin/list-ioc', { params });
       const ipsWithCountries = await Promise.all(
-        response.data.map(async (ip) => {
-          const country = await fetchCountryData(ip.ip_address);
-          return { ...ip, country };
-        })
+        response.data.map(async (ip) => ({
+          ...ip,
+          country: await fetchCountryData(ip.ip_address)
+        }))
       );
+
       setIps(ipsWithCountries);
-      setLoading(false);
+      setPagination(prev => ({
+        ...prev,
+        total: response.data[0]?.pagination?.total || 0
+      }));
     } catch (err) {
       setError('Failed to fetch suspicious IPs');
+    } finally {
       setLoading(false);
     }
   };
@@ -251,19 +281,34 @@ const SuspiciousIPs = () => {
   const handleEnrichIP = async (ip) => {
     try {
       const response = await api.get(`/admin/enrich/${ip}`);
-      setEnrichmentData((prev) => ({ ...prev, [ip]: response.data }));
+      setEnrichmentData(prev => ({ ...prev, [ip]: response.data }));
     } catch (err) {
       setError('Failed to fetch enrichment data');
     }
   };
 
+  const handlePageChange = (newPage) => {
+    if (newPage > 0 && newPage <= Math.ceil(pagination.total / pagination.per_page)) {
+      setPagination(prev => ({ ...prev, page: newPage }));
+    }
+  };
+
+  const handlePerPageChange = (e) => {
+    const newPerPage = parseInt(e.target.value);
+    setPagination(prev => ({ 
+      ...prev,
+      page: 1,
+      per_page: newPerPage
+    }));
+  };
+
   useEffect(() => {
     fetchIps();
-  }, []);
+  }, [pagination.page, pagination.per_page]);
 
   const handleSearch = (e) => {
     e.preventDefault();
-    fetchIps();
+    setPagination(prev => ({ ...prev, page: 1 }));
   };
 
   if (loading) {
@@ -279,17 +324,14 @@ const SuspiciousIPs = () => {
     <DashboardContainer>
       <Sidebar>
         <h2 style={{ padding: '0 1rem', marginBottom: '2rem' }}>Firewall Manager</h2>
-        
         <MenuItem to="/">
           <MenuIcon>📊</MenuIcon>
           Dashboard
         </MenuItem>
-        
         <MenuItem to="/agents">
           <MenuIcon>🖥️</MenuIcon>
           Agent List
         </MenuItem>
-        
         <MenuItem to="/suspicious-ips">
           <MenuIcon>⚠️</MenuIcon>
           Suspicious IPs
@@ -298,7 +340,6 @@ const SuspiciousIPs = () => {
           <MenuIcon>🔒</MenuIcon>
           Blocked IPs
         </MenuItem>
-        
         <MenuItem to="/settings">
           <MenuIcon>⚙️</MenuIcon>
           Settings
@@ -383,6 +424,41 @@ const SuspiciousIPs = () => {
             ))}
           </tbody>
         </Table>
+
+        {pagination.total > 0 && (
+          <PaginationContainer>
+            <div>
+              <PageInfo>
+                Page {pagination.page} of {Math.ceil(pagination.total / pagination.per_page)}
+              </PageInfo>
+              <Select 
+                value={pagination.per_page}
+                onChange={handlePerPageChange}
+                style={{ width: '80px' }}
+              >
+                <option value={5}>5</option>
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+              </Select>
+            </div>
+            <div>
+              <Button 
+                onClick={() => handlePageChange(pagination.page - 1)}
+                disabled={pagination.page === 1}
+              >
+                Previous
+              </Button>
+              <Button 
+                onClick={() => handlePageChange(pagination.page + 1)}
+                disabled={pagination.page >= Math.ceil(pagination.total / pagination.per_page)}
+                style={{ marginLeft: '0.5rem' }}
+              >
+                Next
+              </Button>
+            </div>
+          </PaginationContainer>
+        )}
       </MainContent>
     </DashboardContainer>
   );

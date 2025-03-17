@@ -89,6 +89,44 @@ const TableCell = styled.td`
   border-bottom: 1px solid #e9ecef;
 `;
 
+const Select = styled.select`
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  background: white;
+`;
+
+const Button = styled.button`
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  background-color: #4fd1c5;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  &:hover {
+    background-color: #38a89d;
+  }
+
+  &:disabled {
+    background-color: #a0aec0;
+    cursor: not-allowed;
+  }
+`;
+
+const PaginationContainer = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1rem;
+  padding: 1rem;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+`;
+
 const Dashboard = () => {
   const [counters, setCounters] = useState({
     connected_agents: 0,
@@ -98,33 +136,58 @@ const Dashboard = () => {
   const [activityLogs, setActivityLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [activityPagination, setActivityPagination] = useState({
+    page: 1,
+    per_page: 5,
+    total: 0
+  });
 
   const fetchData = async () => {
     try {
       const [reportResponse, activityResponse] = await Promise.all([
         api.get('/admin/report'),
-        api.get('/admin/log-activity') // Corrected URL
+        api.get('/admin/log-activity', {
+          params: {
+            page: activityPagination.page,
+            per_page: activityPagination.per_page
+          }
+        })
       ]);
+      
       setCounters(reportResponse.data);
-      setActivityLogs(activityResponse.data);
+      setActivityLogs(activityResponse.data.data);
+      setActivityPagination(prev => ({
+        ...prev,
+        total: activityResponse.data.pagination.total
+      }));
       setLoading(false);
     } catch (err) {
-      console.error('Error fetching data:', err); // Log the error for debugging
+      console.error('Error fetching data:', err);
       setError('Failed to load dashboard data');
       setLoading(false);
     }
   };
 
+  const handleActivityPageChange = (newPage) => {
+    if (newPage > 0 && newPage <= Math.ceil(activityPagination.total / activityPagination.per_page)) {
+      setActivityPagination(prev => ({ ...prev, page: newPage }));
+    }
+  };
+
+  const handleActivityPerPageChange = (e) => {
+    const newPerPage = parseInt(e.target.value);
+    setActivityPagination(prev => ({
+      ...prev,
+      page: 1,
+      per_page: newPerPage
+    }));
+  };
+
   useEffect(() => {
-    // Fetch data immediately on component mount
-    fetchData();
-
-    // Set up polling to fetch data every 5 seconds
     const interval = setInterval(fetchData, 5000);
-
-    // Clean up the interval on component unmount
+    fetchData();
     return () => clearInterval(interval);
-  }, []);
+  }, [activityPagination.page, activityPagination.per_page]);
 
   if (loading) return <div>Loading...</div>;
   if (error) return <div>{error}</div>;
@@ -191,7 +254,23 @@ const Dashboard = () => {
           </StatsCard>
         </div>
 
-        <h2 style={{ color: '#2a3042', marginTop: '2rem', marginBottom: '1rem' }}>Activity Log</h2>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h2 style={{ color: '#2a3042', marginTop: '2rem', marginBottom: '1rem' }}>
+            Activity Log
+          </h2>
+          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+            <Select
+              value={activityPagination.per_page}
+              onChange={handleActivityPerPageChange}
+              style={{ width: '80px' }}
+            >
+              <option value={5}>5</option>
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+            </Select>
+          </div>
+        </div>
+
         <ActivityLogTable>
           <thead>
             <tr>
@@ -208,6 +287,30 @@ const Dashboard = () => {
             ))}
           </tbody>
         </ActivityLogTable>
+
+        {activityPagination.total > 0 && (
+          <PaginationContainer>
+            <span>
+              Page {activityPagination.page} of{' '}
+              {Math.ceil(activityPagination.total / activityPagination.per_page)}
+            </span>
+            <div>
+              <Button 
+                onClick={() => handleActivityPageChange(activityPagination.page - 1)}
+                disabled={activityPagination.page === 1}
+              >
+                Previous
+              </Button>
+              <Button
+                onClick={() => handleActivityPageChange(activityPagination.page + 1)}
+                disabled={activityPagination.page >= Math.ceil(activityPagination.total / activityPagination.per_page)}
+                style={{ marginLeft: '0.5rem' }}
+              >
+                Next
+              </Button>
+            </div>
+          </PaginationContainer>
+        )}
       </MainContent>
     </DashboardContainer>
   );
