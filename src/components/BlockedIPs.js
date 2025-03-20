@@ -3,54 +3,81 @@ import styled, { keyframes } from 'styled-components';
 import { NavLink } from 'react-router-dom';
 import api from '../utils/api';
 
+// Color scheme constants
+const colors = {
+  darkBlue: '#0f172a',   // Darker blue for background
+  mediumBlue: '#1e293b', // Medium blue for sidebar
+  lightBlue: '#3559a5',  // Light blue for accents
+  navy: '#0f3460',       // Navy for table headers
+  accent: '#ff7f2a',     // Orange accent
+  lightOrange: '#ffa366',
+  white: '#ffffff',
+  lightGray: '#e2e8f0',
+  text: '#f8fafc'        // Light text color for dark background
+};
+
 // Spinner Animation
 const spin = keyframes`
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 `;
 
 // Styled Components
 const DashboardContainer = styled.div`
   display: flex;
   min-height: 100vh;
-  background-color: #f5f6fa;
+  background-color: ${colors.darkBlue};
 `;
 
 const Sidebar = styled.div`
   width: 260px;
-  background: #2a3042;
+  background: ${colors.mediumBlue};
   padding: 1.5rem;
-  color: white;
-  box-shadow: 4px 0 15px rgba(0,0,0,0.1);
+  color: ${colors.white};
+  box-shadow: 4px 0 15px rgba(0, 0, 0, 0.25);
+  position: relative;
+  z-index: 2;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 1px;
+    height: 100%;
+    background: linear-gradient(to bottom, transparent, ${colors.lightBlue}40, transparent);
+  }
 `;
 
 const MainContent = styled.div`
   flex: 1;
   padding: 2rem;
+  background-image: radial-gradient(circle at 50% 50%, ${colors.navy}10 0%, transparent 70%);
 `;
 
 const MenuItem = styled(NavLink)`
   display: flex;
   align-items: center;
   padding: 12px 20px;
-  margin: 8px 0;
+  margin: 10px 0;
   border-radius: 8px;
-  color: #a0aec0;
+  color: ${colors.lightGray};
   text-decoration: none;
   transition: all 0.3s ease;
-  
+  font-weight: 500;
+
   &:hover {
-    background: #343a4d;
-    color: white;
+    background: ${colors.navy};
+    color: ${colors.white};
+    transform: translateX(5px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   }
-  
+
   &.active {
-    background: #434a5d;
-    color: white;
+    background: ${colors.navy};
+    color: ${colors.white};
+    border-left: 4px solid ${colors.accent};
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   }
 `;
 
@@ -59,90 +86,154 @@ const MenuIcon = styled.span`
   font-size: 1.2rem;
 `;
 
+const PageTitle = styled.h1`
+  color: ${colors.white};
+  font-size: 2.2rem;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  position: relative;
+  display: inline-block;
+  padding-bottom: 0.5rem;
+
+  &::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 60%;
+    height: 3px;
+    background: linear-gradient(to right, ${colors.accent}, transparent);
+    border-radius: 3px;
+  }
+`;
+
+const PageDescription = styled.p`
+  color: ${colors.lightGray};
+  font-size: 1rem;
+  margin-bottom: 2rem;
+`;
+
 const StatsContainer = styled.div`
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
   gap: 1.5rem;
   margin-bottom: 2rem;
 `;
 
 const StatCard = styled.div`
-  flex: 1;
-  background: white;
+  background: ${colors.mediumBlue};
   padding: 1.5rem;
   border-radius: 12px;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
   text-align: center;
+  transition: transform 0.3s ease;
+
+  &:hover {
+    transform: translateY(-5px);
+  }
 `;
 
 const StatValue = styled.h2`
   font-size: 2rem;
-  color: #2a3042;
+  color: ${colors.accent};
   margin: 0.5rem 0;
 `;
 
 const StatLabel = styled.p`
-  color: #718096;
+  color: ${colors.lightGray};
   margin: 0;
 `;
 
 const Table = styled.table`
   width: 100%;
-  border-collapse: collapse;
-  margin-top: 1.5rem;
-  background: white;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: ${colors.mediumBlue};
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
 `;
 
 const TableHeader = styled.th`
-  padding: 1rem;
+  padding: 1.2rem 1rem;
   text-align: left;
-  background-color: #2a3042;
-  color: white;
+  background-color: ${colors.navy};
+  color: ${colors.white};
+  font-weight: 600;
+  letter-spacing: 0.5px;
+
+  &:first-child {
+    border-top-left-radius: 12px;
+  }
+
+  &:last-child {
+    border-top-right-radius: 12px;
+  }
 `;
 
 const TableRow = styled.tr`
   &:nth-child(even) {
-    background-color: #f8f9fa;
+    background-color: ${colors.darkBlue}80;
   }
 
   &:hover {
-    background-color: #e9ecef;
+    background-color: ${colors.navy}70;
   }
 `;
 
 const TableCell = styled.td`
-  padding: 1rem;
-  border-bottom: 1px solid #e9ecef;
+  padding: 1.2rem 1rem;
+  border-bottom: 1px solid ${colors.navy}90;
+  color: ${colors.text};
+  transition: all 0.2s ease;
 `;
 
 const FiltersContainer = styled.div`
   display: flex;
   gap: 1rem;
   margin-bottom: 2rem;
-  flex-wrap: wrap;
+  background: ${colors.mediumBlue};
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
 `;
 
 const Input = styled.input`
-  padding: 8px 12px;
-  border: 1px solid #ddd;
+  padding: 10px 16px;
+  border: 1px solid ${colors.navy};
   border-radius: 8px;
-  font-size: 14px;
-  flex: 1;
+  background-color: ${colors.darkBlue};
+  color: ${colors.text};
+  transition: all 0.2s ease;
+
+  &:focus {
+    outline: none;
+    border-color: ${colors.accent};
+    box-shadow: 0 0 0 3px ${colors.accent}20;
+  }
 `;
 
 const Button = styled.button`
-  padding: 8px 16px;
+  padding: 10px 20px;
   border: none;
   border-radius: 8px;
-  background-color: #4fd1c5;
-  color: white;
+  background-color: ${colors.accent};
+  color: ${colors.white};
   cursor: pointer;
   transition: all 0.3s ease;
+  font-weight: 600;
 
   &:hover {
-    background-color: #38a89d;
+    background-color: ${colors.lightOrange};
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(255, 127, 42, 0.4);
+  }
+
+  &:disabled {
+    background-color: #475569;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
   }
 `;
 
@@ -167,7 +258,7 @@ const Tag = styled.span`
 `;
 
 const NoDataMessage = styled.span`
-  color: #718096;
+  color: ${colors.lightGray};
   font-style: italic;
 `;
 
@@ -178,11 +269,13 @@ const LoadingContainer = styled.div`
   height: 100vh;
   flex-direction: column;
   gap: 1rem;
+  background-color: ${colors.darkBlue};
+  color: ${colors.white};
 `;
 
 const Spinner = styled.div`
-  border: 4px solid rgba(0, 0, 0, 0.1);
-  border-top: 4px solid #4fd1c5;
+  border: 4px solid rgba(255, 255, 255, 0.1);
+  border-top: 4px solid ${colors.accent};
   border-radius: 50%;
   width: 40px;
   height: 40px;
@@ -191,14 +284,14 @@ const Spinner = styled.div`
 
 const LoadingText = styled.p`
   font-size: 1.2rem;
-  color: #2a3042;
+  color: ${colors.white};
 `;
 
 // Utility function to convert epoch time to a human-readable format
 const formatEpochTime = (epochTime) => {
-  if (!epochTime) return 'N/A'; // Handle null or undefined values
-  const date = new Date(epochTime * 1000); // Convert to milliseconds
-  return date.toLocaleString(); // Format as a readable string
+  if (!epochTime) return 'N/A';
+  const date = new Date(epochTime * 1000);
+  return date.toLocaleString();
 };
 
 const BlockedIPs = () => {
@@ -234,7 +327,6 @@ const BlockedIPs = () => {
 
   useEffect(() => {
     if (blockedIPs.length > 0) {
-      // Fetch enrichment data for all blocked IPs
       blockedIPs.forEach((ip) => fetchEnrichmentData(ip.ip_address));
     }
   }, [blockedIPs]);
@@ -266,28 +358,23 @@ const BlockedIPs = () => {
   return (
     <DashboardContainer>
       <Sidebar>
-        <h2 style={{ padding: '0 1rem', marginBottom: '2rem' }}>Firewall Manager</h2>
-        
+        <h2 style={{ padding: '0 1rem', marginBottom: '2rem', color: colors.white }}>Firewall Manager</h2>
         <MenuItem to="/">
           <MenuIcon>📊</MenuIcon>
           Dashboard
         </MenuItem>
-        
         <MenuItem to="/agents">
           <MenuIcon>🖥️</MenuIcon>
           Agent List
         </MenuItem>
-        
         <MenuItem to="/suspicious-ips">
           <MenuIcon>⚠️</MenuIcon>
           Suspicious IPs
         </MenuItem>
-        
-        <MenuItem to="/blocked-ips">
+        <MenuItem to="/blocked-ips" activeClassName="active">
           <MenuIcon>🚫</MenuIcon>
           Blocked IPs
         </MenuItem>
-        
         <MenuItem to="/settings">
           <MenuIcon>⚙️</MenuIcon>
           Settings
@@ -295,18 +382,19 @@ const BlockedIPs = () => {
       </Sidebar>
 
       <MainContent>
-        <h1>Blocked IPs</h1>
-        
+        <PageTitle>Blocked IPs</PageTitle>
+        <PageDescription>Monitor and manage blocked IP addresses</PageDescription>
+
         <StatsContainer>
           <StatCard>
-            <StatValue>{blockedIPs.length}</StatValue>
             <StatLabel>Total Blocked IPs</StatLabel>
+            <StatValue>{blockedIPs.length}</StatValue>
           </StatCard>
           <StatCard>
+            <StatLabel>Enriched IPs</StatLabel>
             <StatValue>
               {blockedIPs.filter((ip) => enrichmentData[ip.ip_address]).length}
             </StatValue>
-            <StatLabel>Enriched IPs</StatLabel>
           </StatCard>
         </StatsContainer>
 
@@ -317,12 +405,11 @@ const BlockedIPs = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
-          
           <Button onClick={handleSearch}>Search</Button>
           <Button onClick={handleResetSearch}>Reset</Button>
         </FiltersContainer>
 
-        {error && <div style={{ color: '#e53e3e', marginBottom: '1rem' }}>{error}</div>}
+        {error && <div style={{ color: '#ef4444', marginBottom: '1rem' }}>{error}</div>}
 
         <Table>
           <thead>

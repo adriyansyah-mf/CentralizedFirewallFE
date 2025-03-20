@@ -6,20 +6,21 @@ import api from '../utils/api';
 const DashboardContainer = styled.div`
   display: flex;
   min-height: 100vh;
-  background-color: #f5f6fa;
+  background-color: #0f172a; /* Dark blue background */
 `;
 
 const Sidebar = styled.div`
   width: 260px;
-  background: #2a3042;
+  background: #1e293b; /* Slightly lighter blue for sidebar */
   padding: 1.5rem;
   color: white;
-  box-shadow: 4px 0 15px rgba(0,0,0,0.1);
+  box-shadow: 4px 0 15px rgba(0,0,0,0.3);
 `;
 
 const MainContent = styled.div`
   flex: 1;
   padding: 2rem;
+  color: #f8fafc; /* Light text color for dark background */
 `;
 
 const MenuItem = styled(NavLink)`
@@ -28,18 +29,19 @@ const MenuItem = styled(NavLink)`
   padding: 12px 20px;
   margin: 8px 0;
   border-radius: 8px;
-  color: #a0aec0;
+  color: #cbd5e1; /* Light gray text */
   text-decoration: none;
   transition: all 0.3s ease;
-  
+
   &:hover {
-    background: #343a4d;
-    color: white;
+    background: rgba(249, 115, 22, 0.1); /* Light orange hover */
+    color: #f97316; /* Orange text on hover */
   }
-  
+
   &.active {
-    background: #434a5d;
-    color: white;
+    background: rgba(249, 115, 22, 0.2); /* Slightly darker orange for active */
+    color: #f97316; /* Orange text for active */
+    box-shadow: 0 2px 5px rgba(249, 115, 22, 0.1);
   }
 `;
 
@@ -54,10 +56,10 @@ const SettingsContainer = styled.div`
 `;
 
 const Section = styled.div`
-  background: white;
+  background: #1e293b; /* Dark blue for sections */
   padding: 2rem;
   border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2); /* Darker shadow */
   margin-bottom: 2rem;
 `;
 
@@ -65,7 +67,7 @@ const ApiKeyDisplay = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #f8f9fa;
+  background: #0f172a; /* Darker blue for API key display */
   padding: 1rem;
   border-radius: 4px;
   margin-top: 1rem;
@@ -73,24 +75,24 @@ const ApiKeyDisplay = styled.div`
 
 const ApiKeyText = styled.span`
   font-family: monospace;
-  color: #2a3042;
+  color: #f8fafc; /* Light text color */
 `;
 
 const Button = styled.button`
   padding: 8px 16px;
   border: none;
   border-radius: 4px;
-  background-color: #4fd1c5;
+  background-color: #f97316; /* Orange button */
   color: white;
   cursor: pointer;
   transition: all 0.3s ease;
 
   &:hover {
-    background-color: #38a89d;
+    background-color: #ea580c; /* Darker orange on hover */
   }
 
   &:disabled {
-    background-color: #a0aec0;
+    background-color: #475569; /* Gray when disabled */
     cursor: not-allowed;
   }
 `;
@@ -102,10 +104,22 @@ const FormGroup = styled.div`
 const Input = styled.input`
   width: 100%;
   padding: 8px 12px;
-  border: 1px solid #ddd;
+  border: 1px solid #334155; /* Dark border */
   border-radius: 4px;
   font-size: 14px;
   margin-top: 0.5rem;
+  background-color: #0f172a; /* Dark input background */
+  color: #f8fafc; /* Light text color */
+
+  &:focus {
+    outline: none;
+    border-color: #f97316; /* Orange border on focus */
+    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+  }
+
+  &::placeholder {
+    color: #64748b; /* Gray placeholder */
+  }
 `;
 
 const Settings = () => {
@@ -205,7 +219,7 @@ const Settings = () => {
   return (
     <DashboardContainer>
       <Sidebar>
-        <h2 style={{ padding: '0 1rem', marginBottom: '2rem' }}>Firewall Manager</h2>
+        <h2 style={{ padding: '0 1rem', marginBottom: '2rem', color: '#f8fafc' }}>Firewall Manager</h2>
         <MenuItem to="/">
           <MenuIcon>📊</MenuIcon>
           Dashboard
@@ -230,11 +244,11 @@ const Settings = () => {
 
       <MainContent>
         <SettingsContainer>
-          <h1>Settings</h1>
-          
+          <h1 style={{ color: '#f8fafc' }}>Settings</h1>
+
           <Section>
-            <h2>API Key Management</h2>
-            {error && <div style={{ color: '#e53e3e', marginBottom: '1rem' }}>{error}</div>}
+            <h2 style={{ color: '#f8fafc' }}>API Key Management</h2>
+            {error && <div style={{ color: '#ef4444', marginBottom: '1rem' }}>{error}</div>}
             <ApiKeyDisplay>
               <ApiKeyText>{apiKey || 'No API key generated yet'}</ApiKeyText>
               <Button 
@@ -244,7 +258,7 @@ const Settings = () => {
                 {generating ? 'Generating...' : 'Generate New API Key'}
               </Button>
             </ApiKeyDisplay>
-            <div style={{ marginTop: '1rem', color: '#718096' }}>
+            <div style={{ marginTop: '1rem', color: '#94a3b8' }}>
               <small>
                 Note: Generating a new API key will invalidate the previous one.
               </small>
@@ -252,15 +266,15 @@ const Settings = () => {
           </Section>
 
           <Section>
-            <h2>User Details</h2>
+            <h2 style={{ color: '#f8fafc' }}>User Details</h2>
             {updateSuccess && (
               <div style={{ color: '#4fd1c5', marginBottom: '1rem' }}>
                 User details updated successfully!
               </div>
             )}
-            {error && <div style={{ color: '#e53e3e', marginBottom: '1rem' }}>{error}</div>}
+            {error && <div style={{ color: '#ef4444', marginBottom: '1rem' }}>{error}</div>}
             <FormGroup>
-              <label>Name</label>
+              <label style={{ color: '#94a3b8' }}>Name</label>
               <Input
                 type="text"
                 placeholder="Enter your name"
@@ -269,7 +283,7 @@ const Settings = () => {
               />
             </FormGroup>
             <FormGroup>
-              <label>Password</label>
+              <label style={{ color: '#94a3b8' }}>Password</label>
               <Input
                 type="password"
                 placeholder="Enter new password"
@@ -283,15 +297,15 @@ const Settings = () => {
           </Section>
 
           <Section>
-            <h2>Group Management</h2>
-            {createGroupError && <div style={{ color: '#e53e3e', marginBottom: '1rem' }}>{createGroupError}</div>}
+            <h2 style={{ color: '#f8fafc' }}>Group Management</h2>
+            {createGroupError && <div style={{ color: '#ef4444', marginBottom: '1rem' }}>{createGroupError}</div>}
             {createdGroupId && (
               <div style={{ color: '#4fd1c5', marginBottom: '1rem' }}>
                 Group created successfully! ID: {createdGroupId}
               </div>
             )}
             <FormGroup>
-              <label>Group Name</label>
+              <label style={{ color: '#94a3b8' }}>Group Name</label>
               <Input
                 type="text"
                 placeholder="Enter group name"
@@ -306,7 +320,6 @@ const Settings = () => {
               {createGroupLoading ? 'Creating...' : 'Create New Group'}
             </Button>
           </Section>
-
         </SettingsContainer>
       </MainContent>
     </DashboardContainer>
