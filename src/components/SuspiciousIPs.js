@@ -452,7 +452,8 @@ const SuspiciousIPs = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [hostname, setHostname] = useState('');
-  const [isProcess, setIsProcess] = useState(''); // Updated to use is_process
+  const [ipAddress, setIpAddress] = useState(''); // New state for IP address search
+  const [isProcess, setIsProcess] = useState('');
   const [enrichmentData, setEnrichmentData] = useState({});
   const [pagination, setPagination] = useState({
     page: 1,
@@ -474,7 +475,8 @@ const SuspiciousIPs = () => {
       });
 
       if (hostname) params.append('hostname', hostname);
-      if (isProcess !== '') params.append('is_process', isProcess); // Updated to use is_process
+      if (ipAddress) params.append('ip', ipAddress); // Add IP address parameter
+      if (isProcess !== '') params.append('is_process', isProcess);
 
       const response = await api.get('/admin/list-ioc', { params });
       const ipsWithCountries = await Promise.all(
@@ -556,6 +558,16 @@ const SuspiciousIPs = () => {
     fetchIps();
   };
 
+  const handleClearSearch = () => {
+    setHostname('');
+    setIpAddress('');
+    setIsProcess('');
+    setPagination(prev => ({ ...prev, page: 1 }));
+    // We can either call fetchIps() directly or wait for the user to click search
+    // For better UX, let's call it directly
+    setTimeout(fetchIps, 0);
+  };
+
   // Find the IP object for the currently selected IP
   const currentIpDetails = ips.find(ip => ip.ip_address === currentIp) || {};
 
@@ -591,7 +603,13 @@ const SuspiciousIPs = () => {
 
         <FiltersContainer>
           <form onSubmit={handleSearch}>
-            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+              <Input
+                type="text"
+                placeholder="Search by IP address"
+                value={ipAddress}
+                onChange={(e) => setIpAddress(e.target.value)}
+              />
               <Input
                 type="text"
                 placeholder="Search by hostname"
@@ -606,95 +624,121 @@ const SuspiciousIPs = () => {
                 <option value="true">Blocked</option>
                 <option value="false">Not Blocked</option>
               </Select>
-              <Button type="submit">Search</Button>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <Button type="submit">Search</Button>
+                <IconButton 
+                  type="button" 
+                  onClick={handleClearSearch} 
+                  secondary
+                >
+                  Clear
+                </IconButton>
+              </div>
             </div>
           </form>
         </FiltersContainer>
 
         {error && <div style={{ color: '#ef4444', marginBottom: '1rem' }}>{error}</div>}
 
-        <Table>
-          <thead>
-            <tr>
-              <TableHeader>IP Address</TableHeader>
-              <TableHeader>Hostname</TableHeader>
-              <TableHeader>Status</TableHeader>
-              <TableHeader>Country</TableHeader>
-              <TableHeader>Actions</TableHeader>
-            </tr>
-          </thead>
-          <tbody>
-            {ips.map(ip => (
-              <TableRow key={ip.id}>
-                <TableCell>{ip.ip_address}</TableCell>
-                <TableCell>{ip.hostname}</TableCell>
-                <TableCell>
-                  {ip.is_process ? ( // Updated to use is_process
-                    <StatusBadge className="blocked">
-                      <StatusDot className="blocked" />
-                      Blocked
-                    </StatusBadge>
-                  ) : (
-                    <StatusBadge className="allowed">
-                      <StatusDot className="allowed" />
-                      Allowed
-                    </StatusBadge>
-                  )}
-                </TableCell>
-                <CountryCell>
-                  {ip.country}
-                </CountryCell>
-                <TableCell>
-                  {!ip.is_process && ( // Updated to use is_process
-                    <Button onClick={() => handleBlockIP(ip.ip_address, ip.hostname)}>
-                      Block
-                    </Button>
-                  )}
-                  <Button 
-                    onClick={() => handleShowDetails(ip.ip_address)}
-                    style={{ marginLeft: '8px' }}
-                  >
-                    Show Detail
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </tbody>
-        </Table>
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '2rem' }}>
+            <LoadingSpinner />
+            <p style={{ color: colors.lightGray, marginTop: '1rem' }}>Loading IP data...</p>
+          </div>
+        ) : (
+          <>
+            <Table>
+              <thead>
+                <tr>
+                  <TableHeader>IP Address</TableHeader>
+                  <TableHeader>Hostname</TableHeader>
+                  <TableHeader>Status</TableHeader>
+                  <TableHeader>Country</TableHeader>
+                  <TableHeader>Actions</TableHeader>
+                </tr>
+              </thead>
+              <tbody>
+                {ips.length > 0 ? (
+                  ips.map(ip => (
+                    <TableRow key={ip.id}>
+                      <TableCell>{ip.ip_address}</TableCell>
+                      <TableCell>{ip.hostname}</TableCell>
+                      <TableCell>
+                        {ip.is_process ? (
+                          <StatusBadge className="blocked">
+                            <StatusDot className="blocked" />
+                            Blocked
+                          </StatusBadge>
+                        ) : (
+                          <StatusBadge className="allowed">
+                            <StatusDot className="allowed" />
+                            Allowed
+                          </StatusBadge>
+                        )}
+                      </TableCell>
+                      <CountryCell>
+                        {ip.country}
+                      </CountryCell>
+                      <TableCell>
+                        {!ip.is_process && (
+                          <Button onClick={() => handleBlockIP(ip.ip_address, ip.hostname)}>
+                            Block
+                          </Button>
+                        )}
+                        <Button 
+                          onClick={() => handleShowDetails(ip.ip_address)}
+                          style={{ marginLeft: '8px' }}
+                        >
+                          Show Detail
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan="5" style={{ textAlign: 'center' }}>
+                      No IP addresses found matching your search criteria.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </tbody>
+            </Table>
 
-        {pagination.total > 0 && (
-          <PaginationContainer>
-            <div>
-              <PageInfo>
-                Showing page {pagination.page} of {Math.ceil(pagination.total / pagination.per_page)}
-              </PageInfo>
-              <Select
-                value={pagination.per_page}
-                onChange={handlePerPageChange}
-                style={{ width: '80px' }}
-              >
-                <option value={5}>5</option>
-                <option value={10}>10</option>
-                <option value={20}>20</option>
-                <option value={50}>50</option>
-              </Select>
-            </div>
-            <PaginationButtons>
-              <IconButton
-                onClick={() => handlePageChange(pagination.page - 1)}
-                disabled={pagination.page === 1}
-                secondary
-              >
-                Previous
-              </IconButton>
-              <IconButton
-                onClick={() => handlePageChange(pagination.page + 1)}
-                disabled={pagination.page >= Math.ceil(pagination.total / pagination.per_page)}
-              >
-                Next
-              </IconButton>
-            </PaginationButtons>
-          </PaginationContainer>
+            {pagination.total > 0 && (
+              <PaginationContainer>
+                <div>
+                  <PageInfo>
+                    Showing page {pagination.page} of {Math.ceil(pagination.total / pagination.per_page)}
+                  </PageInfo>
+                  <Select
+                    value={pagination.per_page}
+                    onChange={handlePerPageChange}
+                    style={{ width: '80px' }}
+                  >
+                    <option value={5}>5</option>
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                    <option value={50}>50</option>
+                  </Select>
+                </div>
+                <PaginationButtons>
+                  <IconButton
+                    onClick={() => handlePageChange(pagination.page - 1)}
+                    disabled={pagination.page === 1}
+                    secondary
+                  >
+                    Previous
+                  </IconButton>
+                  <IconButton
+                    onClick={() => handlePageChange(pagination.page + 1)}
+                    disabled={pagination.page >= Math.ceil(pagination.total / pagination.per_page)}
+                  >
+                    Next
+                  </IconButton>
+                </PaginationButtons>
+              </PaginationContainer>
+            )}
+          </>
         )}
       </MainContent>
 
@@ -729,7 +773,7 @@ const SuspiciousIPs = () => {
                 <InfoRow>
                   <InfoLabel>Status:</InfoLabel>
                   <InfoValue>
-                    {currentIpDetails.is_process ? ( // Updated to use is_process
+                    {currentIpDetails.is_process ? (
                       <StatusBadge className="blocked">
                         <StatusDot className="blocked" />
                         Blocked
@@ -780,7 +824,7 @@ const SuspiciousIPs = () => {
                   </InfoRow>
                 )}
                 
-                {!currentIpDetails.is_process && ( // Updated to use is_process
+                {!currentIpDetails.is_process && (
                   <div style={{ marginTop: '2rem', textAlign: 'center' }}>
                     <Button onClick={() => {
                       handleBlockIP(currentIp, currentIpDetails.hostname);
