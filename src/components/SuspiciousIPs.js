@@ -452,14 +452,14 @@ const SuspiciousIPs = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [hostname, setHostname] = useState('');
-  const [isBlocked, setIsBlocked] = useState('');
+  const [isProcess, setIsProcess] = useState(''); // Updated to use is_process
   const [enrichmentData, setEnrichmentData] = useState({});
   const [pagination, setPagination] = useState({
     page: 1,
     per_page: 10,
     total: 0
   });
-  
+
   // Modal state
   const [showModal, setShowModal] = useState(false);
   const [currentIp, setCurrentIp] = useState(null);
@@ -474,7 +474,7 @@ const SuspiciousIPs = () => {
       });
 
       if (hostname) params.append('hostname', hostname);
-      if (isBlocked !== '') params.append('is_blocked', isBlocked);
+      if (isProcess !== '') params.append('is_process', isProcess); // Updated to use is_process
 
       const response = await api.get('/admin/list-ioc', { params });
       const ipsWithCountries = await Promise.all(
@@ -599,8 +599,8 @@ const SuspiciousIPs = () => {
                 onChange={(e) => setHostname(e.target.value)}
               />
               <Select
-                value={isBlocked}
-                onChange={(e) => setIsBlocked(e.target.value)}
+                value={isProcess}
+                onChange={(e) => setIsProcess(e.target.value)}
               >
                 <option value="">All Statuses</option>
                 <option value="true">Blocked</option>
@@ -629,7 +629,7 @@ const SuspiciousIPs = () => {
                 <TableCell>{ip.ip_address}</TableCell>
                 <TableCell>{ip.hostname}</TableCell>
                 <TableCell>
-                  {ip.is_blocked ? (
+                  {ip.is_process ? ( // Updated to use is_process
                     <StatusBadge className="blocked">
                       <StatusDot className="blocked" />
                       Blocked
@@ -645,7 +645,7 @@ const SuspiciousIPs = () => {
                   {ip.country}
                 </CountryCell>
                 <TableCell>
-                  {!ip.is_blocked && (
+                  {!ip.is_process && ( // Updated to use is_process
                     <Button onClick={() => handleBlockIP(ip.ip_address, ip.hostname)}>
                       Block
                     </Button>
@@ -729,7 +729,7 @@ const SuspiciousIPs = () => {
                 <InfoRow>
                   <InfoLabel>Status:</InfoLabel>
                   <InfoValue>
-                    {currentIpDetails.is_blocked ? (
+                    {currentIpDetails.is_process ? ( // Updated to use is_process
                       <StatusBadge className="blocked">
                         <StatusDot className="blocked" />
                         Blocked
@@ -780,7 +780,7 @@ const SuspiciousIPs = () => {
                   </InfoRow>
                 )}
                 
-                {!currentIpDetails.is_blocked && (
+                {!currentIpDetails.is_process && ( // Updated to use is_process
                   <div style={{ marginTop: '2rem', textAlign: 'center' }}>
                     <Button onClick={() => {
                       handleBlockIP(currentIp, currentIpDetails.hostname);
