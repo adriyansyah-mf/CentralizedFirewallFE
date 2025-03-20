@@ -295,6 +295,18 @@ const StatusDot = styled.span`
   }
 `;
 
+const CounterBadge = styled.span`
+  padding: 4px 10px;
+  background-color: ${colors.accent};
+  color: ${colors.white};
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+`;
+
 const PaginationContainer = styled.div`
   display: flex;
   justify-content: space-between;
@@ -654,6 +666,7 @@ const SuspiciousIPs = () => {
                   <TableHeader>Hostname</TableHeader>
                   <TableHeader>Status</TableHeader>
                   <TableHeader>Country</TableHeader>
+                  <TableHeader>Detection Count</TableHeader>
                   <TableHeader>Actions</TableHeader>
                 </tr>
               </thead>
@@ -680,6 +693,9 @@ const SuspiciousIPs = () => {
                         {ip.country}
                       </CountryCell>
                       <TableCell>
+                        <CounterBadge>{ip.counter || 0}</CounterBadge>
+                      </TableCell>
+                      <TableCell>
                         {!ip.is_process && (
                           <Button onClick={() => handleBlockIP(ip.ip_address, ip.hostname)}>
                             Block
@@ -696,7 +712,7 @@ const SuspiciousIPs = () => {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan="5" style={{ textAlign: 'center' }}>
+                    <TableCell colSpan="6" style={{ textAlign: 'center' }}>
                       No IP addresses found matching your search criteria.
                     </TableCell>
                   </TableRow>
@@ -784,6 +800,13 @@ const SuspiciousIPs = () => {
                         Allowed
                       </StatusBadge>
                     )}
+                  </InfoValue>
+                </InfoRow>
+                
+                <InfoRow>
+                  <InfoLabel>Detection Count:</InfoLabel>
+                  <InfoValue>
+                    <CounterBadge>{currentIpDetails.counter || 0}</CounterBadge>
                   </InfoValue>
                 </InfoRow>
                 
