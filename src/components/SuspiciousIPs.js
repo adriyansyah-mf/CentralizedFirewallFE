@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { NavLink } from 'react-router-dom';
 import api from '../utils/api';
@@ -31,6 +31,13 @@ const fadeIn = keyframes`
 const slideIn = keyframes`
   from { transform: translateY(-20px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
+`;
+
+// Auto-reload pulse animation
+const pulse = keyframes`
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
 `;
 
 // Styled Components
@@ -347,6 +354,36 @@ const IconButton = styled(Button)`
   }
 `;
 
+// Auto-reload indicator component
+const AutoReloadIndicator = styled.div`
+  display: flex;
+  align-items: center;
+  margin-left: 16px;
+  color: ${colors.lightGray};
+  font-size: 0.9rem;
+
+  .indicator-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: ${colors.accent};
+    margin-right: 8px;
+    animation: ${pulse} 2s infinite ease-in-out;
+  }
+
+  &.paused .indicator-dot {
+    background-color: #64748b;
+    animation: none;
+  }
+`;
+
+const AutoReloadControls = styled.div`
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  gap: 16px;
+`;
+
 // Modal Components
 const ModalOverlay = styled.div`
   position: fixed;
@@ -464,7 +501,7 @@ const SuspiciousIPs = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [hostname, setHostname] = useState('');
-  const [ipAddress, setIpAddress] = useState(''); // New state for IP address search
+  const [ipAddress, setIpAddress] = useState('');
   const [isProcess, setIsProcess] = useState('');
   const [enrichmentData, setEnrichmentData] = useState({});
   const [pagination, setPagination] = useState({
@@ -477,17 +514,28 @@ const SuspiciousIPs = () => {
   const [showModal, setShowModal] = useState(false);
   const [currentIp, setCurrentIp] = useState(null);
   const [enrichLoading, setEnrichLoading] = useState(false);
+  
+  // Auto reload state
+  const [autoReload, setAutoReload] = useState(true);
+  const [reloadInterval, setReloadInterval] = useState(30); // seconds
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const [timeRemaining, setTimeRemaining] = useState(reloadInterval);
+  const autoReloadRef = useRef(null);
+  const timerRef = useRef(null);
 
-  const fetchIps = async () => {
+  const fetchIps = async (showLoadingState = true) => {
     try {
-      setLoading(true);
+      if (showLoadingState) {
+        setLoading(true);
+      }
+      
       const params = new URLSearchParams({
         page: pagination.page,
         per_page: pagination.per_page
       });
 
       if (hostname) params.append('hostname', hostname);
-      if (ipAddress) params.append('ip', ipAddress); // Add IP address parameter
+      if (ipAddress) params.append('ip', ipAddress);
       if (isProcess !== '') params.append('is_process', isProcess);
 
       const response = await api.get('/admin/list-ioc', { params });
@@ -503,10 +551,80 @@ const SuspiciousIPs = () => {
         ...prev,
         total: response.data[0]?.pagination?.total || 0
       }));
+      
+      // Update last updated timestamp
+      setLastUpdated(new Date());
+      // Reset timer
+      setTimeRemaining(reloadInterval);
     } catch (err) {
       setError('Failed to fetch suspicious IPs');
+      console.error('Error fetching IPs:', err);
     } finally {
-      setLoading(false);
+      if (showLoadingState) {
+        setLoading(false);
+      }
+    }
+  };
+
+  // Function to start the auto-reload timer
+  const startAutoReloadTimer = () => {
+    // Clear any existing timers first
+    if (autoReloadRef.current) {
+      clearInterval(autoReloadRef.current);
+    }
+    
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+    }
+    
+    // Set up countdown timer
+    timerRef.current = setInterval(() => {
+      setTimeRemaining(prev => {
+        if (prev <= 1) {
+          return reloadInterval;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    
+    // Set up the reload interval
+    autoReloadRef.current = setInterval(() => {
+      if (autoReload) {
+        fetchIps(false); // Don't show the loading spinner for auto-reload
+      }
+    }, reloadInterval * 1000);
+  };
+
+  // Update auto-reload timer when interval changes
+  useEffect(() => {
+    if (autoReload) {
+      startAutoReloadTimer();
+    }
+    
+    return () => {
+      if (autoReloadRef.current) {
+        clearInterval(autoReloadRef.current);
+      }
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, [reloadInterval, autoReload]);
+
+  // Toggle auto-reload
+  const toggleAutoReload = () => {
+    setAutoReload(prev => !prev);
+  };
+
+  // Change the reload interval
+  const handleIntervalChange = (e) => {
+    const newInterval = parseInt(e.target.value);
+    setReloadInterval(newInterval);
+    setTimeRemaining(newInterval);
+    
+    // Restart the timer with the new interval
+    if (autoReload) {
+      startAutoReloadTimer();
     }
   };
 
@@ -560,6 +678,26 @@ const SuspiciousIPs = () => {
     }));
   };
 
+  // Initial data load
+  useEffect(() => {
+    fetchIps();
+    // Start the auto-reload timer
+    if (autoReload) {
+      startAutoReloadTimer();
+    }
+    
+    // Cleanup on unmount
+    return () => {
+      if (autoReloadRef.current) {
+        clearInterval(autoReloadRef.current);
+      }
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, []);
+
+  // Reload when pagination changes
   useEffect(() => {
     fetchIps();
   }, [pagination.page, pagination.per_page]);
@@ -575,9 +713,25 @@ const SuspiciousIPs = () => {
     setIpAddress('');
     setIsProcess('');
     setPagination(prev => ({ ...prev, page: 1 }));
-    // We can either call fetchIps() directly or wait for the user to click search
-    // For better UX, let's call it directly
     setTimeout(fetchIps, 0);
+  };
+
+  // Manual refresh function
+  const handleRefresh = () => {
+    fetchIps();
+    // Reset the timer
+    setTimeRemaining(reloadInterval);
+  };
+
+  // Format timestamp for display
+  const formatLastUpdated = (timestamp) => {
+    if (!timestamp) return 'Never';
+    return new Intl.DateTimeFormat('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true
+    }).format(timestamp);
   };
 
   // Find the IP object for the currently selected IP
@@ -649,6 +803,55 @@ const SuspiciousIPs = () => {
             </div>
           </form>
         </FiltersContainer>
+
+        {/* Auto-reload control bar */}
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          marginBottom: '1rem', 
+          background: colors.mediumBlue,
+          padding: '0.75rem 1rem',
+          borderRadius: '8px'
+        }}>
+          <AutoReloadIndicator className={autoReload ? '' : 'paused'}>
+            <span className="indicator-dot"></span>
+            {autoReload ? `Auto-refreshing in ${timeRemaining}s` : 'Auto-refresh paused'}
+          </AutoReloadIndicator>
+          
+          <AutoReloadControls>
+            <div>
+              <span style={{ color: colors.lightGray, marginRight: '8px' }}>Last updated: {formatLastUpdated(lastUpdated)}</span>
+            </div>
+            
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <span style={{ color: colors.lightGray, marginRight: '8px' }}>Refresh every:</span>
+              <Select
+                value={reloadInterval}
+                onChange={handleIntervalChange}
+                style={{ width: '120px' }}
+              >
+                <option value={10}>10 seconds</option>
+                <option value={30}>30 seconds</option>
+                <option value={60}>1 minute</option>
+                <option value={300}>5 minutes</option>
+              </Select>
+            </div>
+            
+            <IconButton 
+              onClick={toggleAutoReload} 
+              secondary
+            >
+              {autoReload ? 'Pause' : 'Resume'}
+            </IconButton>
+            
+            <IconButton 
+              onClick={handleRefresh}
+              disabled={loading}
+            >
+              Refresh Now
+            </IconButton>
+          </AutoReloadControls>
+        </div>
 
         {error && <div style={{ color: '#ef4444', marginBottom: '1rem' }}>{error}</div>}
 
