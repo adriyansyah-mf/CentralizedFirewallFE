@@ -234,6 +234,13 @@ const CountryCell = styled(TableCell)`
   gap: 8px;
 `;
 
+const CommentCell = styled(TableCell)`
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
 const StatusBadge = styled.span`
   padding: 6px 12px;
   border-radius: 20px;
@@ -431,6 +438,7 @@ const InfoLabel = styled.span`
 const InfoValue = styled.span`
   flex: 1;
   color: ${colors.white};
+  white-space: pre-wrap;
 `;
 
 const LoadingSpinner = styled.div`
@@ -834,6 +842,7 @@ const SuspiciousIPs = () => {
                   <TableHeader>Status</TableHeader>
                   <TableHeader>Country</TableHeader>
                   <TableHeader>Detection Count</TableHeader>
+                  <TableHeader>Comment</TableHeader>
                   <TableHeader>Actions</TableHeader>
                 </tr>
               </thead>
@@ -862,6 +871,9 @@ const SuspiciousIPs = () => {
                       <TableCell>
                         <CounterBadge>{ip.counter || 0}</CounterBadge>
                       </TableCell>
+                      <CommentCell title={ip.comment}>
+                        {ip.comment}
+                      </CommentCell>
                       <TableCell>
                         {!ip.is_process && (
                           <Button onClick={() => handleBlockIP(ip.ip_address, ip.hostname)}>
@@ -879,7 +891,7 @@ const SuspiciousIPs = () => {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan="6" style={{ textAlign: 'center' }}>
+                    <TableCell colSpan="7" style={{ textAlign: 'center' }}>
                       No IP addresses found matching your search criteria.
                     </TableCell>
                   </TableRow>
@@ -946,6 +958,10 @@ const SuspiciousIPs = () => {
               <InfoRow>
                 <InfoLabel>Country:</InfoLabel>
                 <InfoValue>{currentIpDetails.country || 'Unknown'}</InfoValue>
+              </InfoRow>
+              <InfoRow>
+                <InfoLabel>Comment:</InfoLabel>
+                <InfoValue>{currentIpDetails.comment || 'N/A'}</InfoValue>
               </InfoRow>
 
               <div style={{ textAlign: 'center', margin: '1.5rem 0' }}>
