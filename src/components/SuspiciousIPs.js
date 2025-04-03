@@ -379,6 +379,11 @@ const ModalContent = styled.div`
   animation: ${slideIn} 0.3s ease-out;
 `;
 
+const ReputationModalContent = styled(ModalContent)`
+  max-height: 80vh;
+  overflow-y: auto;
+`;
+
 const ModalHeader = styled.div`
   display: flex;
   justify-content: space-between;
@@ -438,47 +443,36 @@ const LoadingSpinner = styled.div`
   margin: 0 auto;
 `;
 
-const SectionHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.75rem;
-  background: rgba(15, 23, 42, 0.7);
-  border-radius: 8px;
-  margin: 1rem 0 0.5rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
+const ReputationTable = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+`;
 
-  &:hover {
-    background: rgba(15, 23, 42, 0.9);
+const ReputationRow = styled.tr`
+  &:nth-child(even) {
+    background-color: rgba(15, 23, 42, 0.3);
   }
 `;
 
-const SectionTitle = styled.h3`
-  color: ${colors.white};
-  margin: 0;
-  font-size: 1rem;
-`;
-
-const SectionContent = styled.div`
-  padding: 0.5rem 0;
-  display: ${props => props.expanded ? 'block' : 'none'};
-`;
-
-const CompactInfoRow = styled.div`
-  display: grid;
-  grid-template-columns: 120px 1fr;
-  margin-bottom: 0.5rem;
+const ReputationCell = styled.td`
+  padding: 0.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   font-size: 0.9rem;
+  
+  &:first-child {
+    font-weight: 600;
+    color: ${colors.lightGray};
+    width: 40%;
+  }
 `;
 
-const CompactInfoLabel = styled.span`
+const SectionTitle = styled.div`
+  color: ${colors.accent};
   font-weight: 600;
-  color: ${colors.lightGray};
-`;
-
-const CompactInfoValue = styled.span`
-  color: ${colors.white};
+  margin: 1.5rem 0 0.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid ${colors.accent}50;
 `;
 
 const SuspiciousIPs = () => {
@@ -496,11 +490,9 @@ const SuspiciousIPs = () => {
   });
 
   const [showModal, setShowModal] = useState(false);
+  const [showReputationModal, setShowReputationModal] = useState(false);
   const [currentIp, setCurrentIp] = useState(null);
   const [reputationLoading, setReputationLoading] = useState(false);
-  const [reputationExpanded, setReputationExpanded] = useState(false);
-  const [networkExpanded, setNetworkExpanded] = useState(false);
-  const [reportsExpanded, setReportsExpanded] = useState(false);
   
   const [autoReload, setAutoReload] = useState(true);
   const [reloadInterval, setReloadInterval] = useState(30);
@@ -619,9 +611,6 @@ const SuspiciousIPs = () => {
   const handleShowDetails = async (ip) => {
     setCurrentIp(ip);
     setShowModal(true);
-    setReputationExpanded(false);
-    setNetworkExpanded(false);
-    setReportsExpanded(false);
   };
 
   const handleCheckReputation = async () => {
@@ -634,7 +623,7 @@ const SuspiciousIPs = () => {
         ...prev, 
         [currentIp]: response.data.data 
       }));
-      setReputationExpanded(true);
+      setShowReputationModal(true);
     } catch (err) {
       setError('Failed to fetch reputation data');
     } finally {
@@ -936,6 +925,7 @@ const SuspiciousIPs = () => {
         )}
       </MainContent>
 
+      {/* Basic IP Details Modal */}
       {showModal && (
         <ModalOverlay onClick={handleCloseModal}>
           <ModalContent onClick={e => e.stopPropagation()}>
@@ -975,91 +965,12 @@ const SuspiciousIPs = () => {
                       }} />
                       Checking Reputation...
                     </>
-                  ) : 'Check Reputation'}
+                  ) : 'Show Full Reputation Report'}
                 </Button>
               </div>
 
-              {enrichmentData[currentIp] && (
-                <>
-                  <SectionHeader onClick={() => setReputationExpanded(!reputationExpanded)}>
-                    <SectionTitle>Reputation Analysis</SectionTitle>
-                    <span>{reputationExpanded ? '▼' : '▶'}</span>
-                  </SectionHeader>
-                  <SectionContent expanded={reputationExpanded}>
-                    <CompactInfoRow>
-                      <CompactInfoLabel>Public IP:</CompactInfoLabel>
-                      <CompactInfoValue>{enrichmentData[currentIp].isPublic ? 'Yes' : 'No'}</CompactInfoValue>
-                    </CompactInfoRow>
-                    <CompactInfoRow>
-                      <CompactInfoLabel>IP Version:</CompactInfoLabel>
-                      <CompactInfoValue>IPv{enrichmentData[currentIp].ipVersion}</CompactInfoValue>
-                    </CompactInfoRow>
-                    <CompactInfoRow>
-                      <CompactInfoLabel>Abuse Score:</CompactInfoLabel>
-                      <CompactInfoValue>
-                        <CounterBadge>
-                          {enrichmentData[currentIp].abuseConfidenceScore || 0}%
-                        </CounterBadge>
-                      </CompactInfoValue>
-                    </CompactInfoRow>
-                    <CompactInfoRow>
-                      <CompactInfoLabel>Whitelisted:</CompactInfoLabel>
-                      <CompactInfoValue>{enrichmentData[currentIp].isWhitelisted ? 'Yes' : 'No'}</CompactInfoValue>
-                    </CompactInfoRow>
-                    <CompactInfoRow>
-                      <CompactInfoLabel>Tor Node:</CompactInfoLabel>
-                      <CompactInfoValue>{enrichmentData[currentIp].isTor ? 'Yes' : 'No'}</CompactInfoValue>
-                    </CompactInfoRow>
-                  </SectionContent>
-
-                  <SectionHeader onClick={() => setNetworkExpanded(!networkExpanded)}>
-                    <SectionTitle>Network Information</SectionTitle>
-                    <span>{networkExpanded ? '▼' : '▶'}</span>
-                  </SectionHeader>
-                  <SectionContent expanded={networkExpanded}>
-                    <CompactInfoRow>
-                      <CompactInfoLabel>ISP:</CompactInfoLabel>
-                      <CompactInfoValue>{enrichmentData[currentIp].isp || 'N/A'}</CompactInfoValue>
-                    </CompactInfoRow>
-                    <CompactInfoRow>
-                      <CompactInfoLabel>Domain:</CompactInfoLabel>
-                      <CompactInfoValue>{enrichmentData[currentIp].domain || 'N/A'}</CompactInfoValue>
-                    </CompactInfoRow>
-                    <CompactInfoRow>
-                      <CompactInfoLabel>Hostnames:</CompactInfoLabel>
-                      <CompactInfoValue>
-                        {(enrichmentData[currentIp].hostnames || []).slice(0, 2).join(', ') || 'None'}
-                        {enrichmentData[currentIp].hostnames?.length > 2 && ` (+${enrichmentData[currentIp].hostnames.length - 2} more)`}
-                      </CompactInfoValue>
-                    </CompactInfoRow>
-                  </SectionContent>
-
-                  <SectionHeader onClick={() => setReportsExpanded(!reportsExpanded)}>
-                    <SectionTitle>Report Statistics</SectionTitle>
-                    <span>{reportsExpanded ? '▼' : '▶'}</span>
-                  </SectionHeader>
-                  <SectionContent expanded={reportsExpanded}>
-                    <CompactInfoRow>
-                      <CompactInfoLabel>Total Reports:</CompactInfoLabel>
-                      <CompactInfoValue>{enrichmentData[currentIp].totalReports || 0}</CompactInfoValue>
-                    </CompactInfoRow>
-                    <CompactInfoRow>
-                      <CompactInfoLabel>Distinct Users:</CompactInfoLabel>
-                      <CompactInfoValue>{enrichmentData[currentIp].numDistinctUsers || 0}</CompactInfoValue>
-                    </CompactInfoRow>
-                    <CompactInfoRow>
-                      <CompactInfoLabel>Last Reported:</CompactInfoLabel>
-                      <CompactInfoValue>
-                        {enrichmentData[currentIp].lastReportedAt ? 
-                          new Date(enrichmentData[currentIp].lastReportedAt).toLocaleString() : 'Never'}
-                      </CompactInfoValue>
-                    </CompactInfoRow>
-                  </SectionContent>
-                </>
-              )}
-
               {!currentIpDetails.is_process && (
-                <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
+                <div style={{ marginTop: '1rem', textAlign: 'center' }}>
                   <Button 
                     onClick={() => {
                       handleBlockIP(currentIp, currentIpDetails.hostname);
@@ -1073,6 +984,94 @@ const SuspiciousIPs = () => {
               )}
             </div>
           </ModalContent>
+        </ModalOverlay>
+      )}
+
+      {/* Reputation Details Modal */}
+      {showReputationModal && (
+        <ModalOverlay onClick={() => setShowReputationModal(false)}>
+          <ReputationModalContent onClick={e => e.stopPropagation()}>
+            <ModalHeader>
+              <ModalTitle>Reputation Report: {currentIp}</ModalTitle>
+              <CloseButton onClick={() => setShowReputationModal(false)}>×</CloseButton>
+            </ModalHeader>
+
+            {enrichmentData[currentIp] && (
+              <>
+                <SectionTitle>Basic Information</SectionTitle>
+                <ReputationTable>
+                  <tbody>
+                    <ReputationRow>
+                      <ReputationCell>Public IP</ReputationCell>
+                      <ReputationCell>{enrichmentData[currentIp].isPublic ? 'Yes' : 'No'}</ReputationCell>
+                    </ReputationRow>
+                    <ReputationRow>
+                      <ReputationCell>IP Version</ReputationCell>
+                      <ReputationCell>IPv{enrichmentData[currentIp].ipVersion}</ReputationCell>
+                    </ReputationRow>
+                    <ReputationRow>
+                      <ReputationCell>Whitelisted</ReputationCell>
+                      <ReputationCell>{enrichmentData[currentIp].isWhitelisted ? 'Yes' : 'No'}</ReputationCell>
+                    </ReputationRow>
+                  </tbody>
+                </ReputationTable>
+
+                <SectionTitle>Threat Intelligence</SectionTitle>
+                <ReputationTable>
+                  <tbody>
+                    <ReputationRow>
+                      <ReputationCell>Abuse Confidence Score</ReputationCell>
+                      <ReputationCell>
+                        <CounterBadge>
+                          {enrichmentData[currentIp].abuseConfidenceScore || 0}%
+                        </CounterBadge>
+                      </ReputationCell>
+                    </ReputationRow>
+                    <ReputationRow>
+                      <ReputationCell>Total Reports</ReputationCell>
+                      <ReputationCell>{enrichmentData[currentIp].totalReports || 0}</ReputationCell>
+                    </ReputationRow>
+                    <ReputationRow>
+                      <ReputationCell>Distinct Users</ReputationCell>
+                      <ReputationCell>{enrichmentData[currentIp].numDistinctUsers || 0}</ReputationCell>
+                    </ReputationRow>
+                    <ReputationRow>
+                      <ReputationCell>Last Reported</ReputationCell>
+                      <ReputationCell>
+                        {enrichmentData[currentIp].lastReportedAt ? 
+                          new Date(enrichmentData[currentIp].lastReportedAt).toLocaleString() : 'Never'}
+                      </ReputationCell>
+                    </ReputationRow>
+                  </tbody>
+                </ReputationTable>
+
+                <SectionTitle>Network Details</SectionTitle>
+                <ReputationTable>
+                  <tbody>
+                    <ReputationRow>
+                      <ReputationCell>ISP</ReputationCell>
+                      <ReputationCell>{enrichmentData[currentIp].isp || 'N/A'}</ReputationCell>
+                    </ReputationRow>
+                    <ReputationRow>
+                      <ReputationCell>Domain</ReputationCell>
+                      <ReputationCell>{enrichmentData[currentIp].domain || 'N/A'}</ReputationCell>
+                    </ReputationRow>
+                    <ReputationRow>
+                      <ReputationCell>Hostnames</ReputationCell>
+                      <ReputationCell>
+                        {(enrichmentData[currentIp].hostnames || []).slice(0, 3).join(', ')}
+                        {enrichmentData[currentIp].hostnames?.length > 3 && ` (+${enrichmentData[currentIp].hostnames.length - 3} more)`}
+                      </ReputationCell>
+                    </ReputationRow>
+                    <ReputationRow>
+                      <ReputationCell>Tor Node</ReputationCell>
+                      <ReputationCell>{enrichmentData[currentIp].isTor ? 'Yes' : 'No'}</ReputationCell>
+                    </ReputationRow>
+                  </tbody>
+                </ReputationTable>
+              </>
+            )}
+          </ReputationModalContent>
         </ModalOverlay>
       )}
     </DashboardContainer>
