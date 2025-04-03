@@ -5,24 +5,23 @@ import api from '../utils/api';
 
 // Color scheme constants
 const colors = {
-  darkBlue: '#0f172a',   // Darker blue for background
-  mediumBlue: '#1e293b', // Medium blue for sidebar
-  lightBlue: '#3559a5',  // Light blue for accents
-  navy: '#0f3460',       // Navy for table headers
-  accent: '#ff7f2a',     // Orange accent
+  darkBlue: '#0f172a',
+  mediumBlue: '#1e293b',
+  lightBlue: '#3559a5',
+  navy: '#0f3460',
+  accent: '#ff7f2a',
   lightOrange: '#ffa366',
   white: '#ffffff',
   lightGray: '#e2e8f0',
-  text: '#f8fafc'        // Light text color for dark background
+  text: '#f8fafc'
 };
 
-// Spinner Animation
+// Animations
 const spin = keyframes`
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 `;
 
-// Animation for modal
 const fadeIn = keyframes`
   from { opacity: 0; }
   to { opacity: 1; }
@@ -33,7 +32,6 @@ const slideIn = keyframes`
   to { transform: translateY(0); opacity: 1; }
 `;
 
-// Auto-reload pulse animation
 const pulse = keyframes`
   0% { opacity: 0.6; }
   50% { opacity: 1; }
@@ -55,16 +53,6 @@ const Sidebar = styled.div`
   box-shadow: 4px 0 15px rgba(0, 0, 0, 0.25);
   position: relative;
   z-index: 2;
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 1px;
-    height: 100%;
-    background: linear-gradient(to bottom, transparent, ${colors.lightBlue}40, transparent);
-  }
 `;
 
 const MainContent = styled.div`
@@ -246,27 +234,6 @@ const CountryCell = styled(TableCell)`
   gap: 8px;
 `;
 
-const EnrichmentTags = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 1rem;
-`;
-
-const Tag = styled.span`
-  padding: 4px 8px;
-  border-radius: 4px;
-  background-color: ${props => props.color || '#667eea'};
-  color: white;
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-
-  &:hover {
-    opacity: 0.8;
-  }
-`;
-
 const StatusBadge = styled.span`
   padding: 6px 12px;
   border-radius: 20px;
@@ -354,7 +321,6 @@ const IconButton = styled(Button)`
   }
 `;
 
-// Auto-reload indicator component
 const AutoReloadIndicator = styled.div`
   display: flex;
   align-items: center;
@@ -384,7 +350,6 @@ const AutoReloadControls = styled.div`
   gap: 16px;
 `;
 
-// Modal Components
 const ModalOverlay = styled.div`
   position: fixed;
   top: 0;
@@ -402,8 +367,8 @@ const ModalOverlay = styled.div`
 const ModalContent = styled.div`
   width: 600px;
   max-width: 90%;
-  background: rgba(30, 41, 59, 0.8); /* Glassy effect using semi-transparent background */
-  backdrop-filter: blur(10px); /* This creates the frosted glass effect */
+  background: rgba(30, 41, 59, 0.8);
+  backdrop-filter: blur(10px);
   border-radius: 16px;
   box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
   padding: 2rem;
@@ -412,17 +377,6 @@ const ModalContent = styled.div`
   position: relative;
   overflow: hidden;
   animation: ${slideIn} 0.3s ease-out;
-  
-  &::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 80%);
-    pointer-events: none;
-  }
 `;
 
 const ModalHeader = styled.div`
@@ -484,17 +438,48 @@ const LoadingSpinner = styled.div`
   margin: 0 auto;
 `;
 
-// Utility function to fetch country data
-const fetchCountryData = async (ip) => {
-  try {
-    const response = await fetch(`https://api.iplocation.net/?ip=${ip}`);
-    const data = await response.json();
-    return data.country_name || 'Unknown';
-  } catch (err) {
-    console.error('Error fetching country data:', err);
-    return 'Unknown';
+const SectionHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  background: rgba(15, 23, 42, 0.7);
+  border-radius: 8px;
+  margin: 1rem 0 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(15, 23, 42, 0.9);
   }
-};
+`;
+
+const SectionTitle = styled.h3`
+  color: ${colors.white};
+  margin: 0;
+  font-size: 1rem;
+`;
+
+const SectionContent = styled.div`
+  padding: 0.5rem 0;
+  display: ${props => props.expanded ? 'block' : 'none'};
+`;
+
+const CompactInfoRow = styled.div`
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+`;
+
+const CompactInfoLabel = styled.span`
+  font-weight: 600;
+  color: ${colors.lightGray};
+`;
+
+const CompactInfoValue = styled.span`
+  color: ${colors.white};
+`;
 
 const SuspiciousIPs = () => {
   const [ips, setIps] = useState([]);
@@ -510,14 +495,15 @@ const SuspiciousIPs = () => {
     total: 0
   });
 
-  // Modal state
   const [showModal, setShowModal] = useState(false);
   const [currentIp, setCurrentIp] = useState(null);
-  const [enrichLoading, setEnrichLoading] = useState(false);
+  const [reputationLoading, setReputationLoading] = useState(false);
+  const [reputationExpanded, setReputationExpanded] = useState(false);
+  const [networkExpanded, setNetworkExpanded] = useState(false);
+  const [reportsExpanded, setReportsExpanded] = useState(false);
   
-  // Auto reload state
   const [autoReload, setAutoReload] = useState(true);
-  const [reloadInterval, setReloadInterval] = useState(30); // seconds
+  const [reloadInterval, setReloadInterval] = useState(30);
   const [lastUpdated, setLastUpdated] = useState(null);
   const [timeRemaining, setTimeRemaining] = useState(reloadInterval);
   const autoReloadRef = useRef(null);
@@ -552,9 +538,7 @@ const SuspiciousIPs = () => {
         total: response.data[0]?.pagination?.total || 0
       }));
       
-      // Update last updated timestamp
       setLastUpdated(new Date());
-      // Reset timer
       setTimeRemaining(reloadInterval);
     } catch (err) {
       setError('Failed to fetch suspicious IPs');
@@ -566,9 +550,7 @@ const SuspiciousIPs = () => {
     }
   };
 
-  // Function to start the auto-reload timer
   const startAutoReloadTimer = () => {
-    // Clear any existing timers first
     if (autoReloadRef.current) {
       clearInterval(autoReloadRef.current);
     }
@@ -577,7 +559,6 @@ const SuspiciousIPs = () => {
       clearInterval(timerRef.current);
     }
     
-    // Set up countdown timer
     timerRef.current = setInterval(() => {
       setTimeRemaining(prev => {
         if (prev <= 1) {
@@ -587,15 +568,13 @@ const SuspiciousIPs = () => {
       });
     }, 1000);
     
-    // Set up the reload interval
     autoReloadRef.current = setInterval(() => {
       if (autoReload) {
-        fetchIps(false); // Don't show the loading spinner for auto-reload
+        fetchIps(false);
       }
     }, reloadInterval * 1000);
   };
 
-  // Update auto-reload timer when interval changes
   useEffect(() => {
     if (autoReload) {
       startAutoReloadTimer();
@@ -611,18 +590,15 @@ const SuspiciousIPs = () => {
     };
   }, [reloadInterval, autoReload]);
 
-  // Toggle auto-reload
   const toggleAutoReload = () => {
     setAutoReload(prev => !prev);
   };
 
-  // Change the reload interval
   const handleIntervalChange = (e) => {
     const newInterval = parseInt(e.target.value);
     setReloadInterval(newInterval);
     setTimeRemaining(newInterval);
     
-    // Restart the timer with the new interval
     if (autoReload) {
       startAutoReloadTimer();
     }
@@ -643,18 +619,26 @@ const SuspiciousIPs = () => {
   const handleShowDetails = async (ip) => {
     setCurrentIp(ip);
     setShowModal(true);
-    setEnrichLoading(true);
+    setReputationExpanded(false);
+    setNetworkExpanded(false);
+    setReportsExpanded(false);
+  };
+
+  const handleCheckReputation = async () => {
+    if (!currentIp) return;
     
+    setReputationLoading(true);
     try {
-      // Check if we already have enrichment data for this IP
-      if (!enrichmentData[ip]) {
-        const response = await api.get(`/admin/enrich/${ip}`);
-        setEnrichmentData(prev => ({ ...prev, [ip]: response.data }));
-      }
+      const response = await api.get(`/admin/check-reputation/${currentIp}`);
+      setEnrichmentData(prev => ({ 
+        ...prev, 
+        [currentIp]: response.data.data 
+      }));
+      setReputationExpanded(true);
     } catch (err) {
-      setError('Failed to fetch enrichment data');
+      setError('Failed to fetch reputation data');
     } finally {
-      setEnrichLoading(false);
+      setReputationLoading(false);
     }
   };
 
@@ -678,15 +662,12 @@ const SuspiciousIPs = () => {
     }));
   };
 
-  // Initial data load
   useEffect(() => {
     fetchIps();
-    // Start the auto-reload timer
     if (autoReload) {
       startAutoReloadTimer();
     }
     
-    // Cleanup on unmount
     return () => {
       if (autoReloadRef.current) {
         clearInterval(autoReloadRef.current);
@@ -697,7 +678,6 @@ const SuspiciousIPs = () => {
     };
   }, []);
 
-  // Reload when pagination changes
   useEffect(() => {
     fetchIps();
   }, [pagination.page, pagination.per_page]);
@@ -716,14 +696,11 @@ const SuspiciousIPs = () => {
     setTimeout(fetchIps, 0);
   };
 
-  // Manual refresh function
   const handleRefresh = () => {
     fetchIps();
-    // Reset the timer
     setTimeRemaining(reloadInterval);
   };
 
-  // Format timestamp for display
   const formatLastUpdated = (timestamp) => {
     if (!timestamp) return 'Never';
     return new Intl.DateTimeFormat('en-US', {
@@ -734,7 +711,6 @@ const SuspiciousIPs = () => {
     }).format(timestamp);
   };
 
-  // Find the IP object for the currently selected IP
   const currentIpDetails = ips.find(ip => ip.ip_address === currentIp) || {};
 
   return (
@@ -804,7 +780,6 @@ const SuspiciousIPs = () => {
           </form>
         </FiltersContainer>
 
-        {/* Auto-reload control bar */}
         <div style={{ 
           display: 'flex', 
           alignItems: 'center', 
@@ -961,7 +936,6 @@ const SuspiciousIPs = () => {
         )}
       </MainContent>
 
-      {/* Details Modal */}
       {showModal && (
         <ModalOverlay onClick={handleCloseModal}>
           <ModalContent onClick={e => e.stopPropagation()}>
@@ -970,103 +944,150 @@ const SuspiciousIPs = () => {
               <CloseButton onClick={handleCloseModal}>×</CloseButton>
             </ModalHeader>
             
-            {enrichLoading ? (
-              <div style={{ padding: '2rem', textAlign: 'center' }}>
-                <LoadingSpinner />
-                <p style={{ marginTop: '1rem' }}>Loading details...</p>
+            <div>
+              <InfoRow>
+                <InfoLabel>IP Address:</InfoLabel>
+                <InfoValue>{currentIp}</InfoValue>
+              </InfoRow>
+              <InfoRow>
+                <InfoLabel>Hostname:</InfoLabel>
+                <InfoValue>{currentIpDetails.hostname || 'N/A'}</InfoValue>
+              </InfoRow>
+              <InfoRow>
+                <InfoLabel>Country:</InfoLabel>
+                <InfoValue>{currentIpDetails.country || 'Unknown'}</InfoValue>
+              </InfoRow>
+
+              <div style={{ textAlign: 'center', margin: '1.5rem 0' }}>
+                <Button 
+                  onClick={handleCheckReputation}
+                  disabled={reputationLoading}
+                  style={{ width: '100%' }}
+                >
+                  {reputationLoading ? (
+                    <>
+                      <LoadingSpinner style={{ 
+                        width: '16px', 
+                        height: '16px', 
+                        display: 'inline-block',
+                        marginRight: '8px',
+                        borderWidth: '2px'
+                      }} />
+                      Checking Reputation...
+                    </>
+                  ) : 'Check Reputation'}
+                </Button>
               </div>
-            ) : (
-              <div>
-                <InfoRow>
-                  <InfoLabel>IP Address:</InfoLabel>
-                  <InfoValue>{currentIp}</InfoValue>
-                </InfoRow>
-                <InfoRow>
-                  <InfoLabel>Hostname:</InfoLabel>
-                  <InfoValue>{currentIpDetails.hostname || 'N/A'}</InfoValue>
-                </InfoRow>
-                <InfoRow>
-                  <InfoLabel>Country:</InfoLabel>
-                  <InfoValue>{currentIpDetails.country || 'Unknown'}</InfoValue>
-                </InfoRow>
-                <InfoRow>
-                  <InfoLabel>Status:</InfoLabel>
-                  <InfoValue>
-                    {currentIpDetails.is_process ? (
-                      <StatusBadge className="blocked">
-                        <StatusDot className="blocked" />
-                        Blocked
-                      </StatusBadge>
-                    ) : (
-                      <StatusBadge className="allowed">
-                        <StatusDot className="allowed" />
-                        Allowed
-                      </StatusBadge>
-                    )}
-                  </InfoValue>
-                </InfoRow>
-                
-                <InfoRow>
-                  <InfoLabel>Detection Count:</InfoLabel>
-                  <InfoValue>
-                    <CounterBadge>{currentIpDetails.counter || 0}</CounterBadge>
-                  </InfoValue>
-                </InfoRow>
-                
-                {/* Add comment information here */}
-                <InfoRow>
-                  <InfoLabel>Comment:</InfoLabel>
-                  <InfoValue>{currentIpDetails.comment || 'No comment available'}</InfoValue>
-                </InfoRow>
-                
-                <h3 style={{ marginTop: '1.5rem', marginBottom: '1rem', color: colors.white }}>
-                  Threat Intelligence
-                </h3>
-                
-                {enrichmentData[currentIp] && enrichmentData[currentIp].length > 0 ? (
-                  <>
-                    <InfoRow>
-                      <InfoLabel>Risk Score:</InfoLabel>
-                      <InfoValue>
-                        {Math.max(...enrichmentData[currentIp].map(item => item.risk || 0)) || 'Low'}
-                      </InfoValue>
-                    </InfoRow>
-                    <InfoRow>
-                      <InfoLabel>Tags:</InfoLabel>
-                      <InfoValue>
-                        <EnrichmentTags>
-                          {enrichmentData[currentIp].map((tag, index) => (
-                            <Tag key={index} color={tag.color || '#475569'}>
-                              {tag.value}
-                            </Tag>
-                          ))}
-                        </EnrichmentTags>
-                      </InfoValue>
-                    </InfoRow>
-                  </>
-                ) : (
-                  <InfoRow>
-                    <InfoValue style={{ textAlign: 'center' }}>No enrichment data available</InfoValue>
-                  </InfoRow>
-                )}
-                
-                {!currentIpDetails.is_process && (
-                  <div style={{ marginTop: '2rem', textAlign: 'center' }}>
-                    <Button onClick={() => {
+
+              {enrichmentData[currentIp] && (
+                <>
+                  <SectionHeader onClick={() => setReputationExpanded(!reputationExpanded)}>
+                    <SectionTitle>Reputation Analysis</SectionTitle>
+                    <span>{reputationExpanded ? '▼' : '▶'}</span>
+                  </SectionHeader>
+                  <SectionContent expanded={reputationExpanded}>
+                    <CompactInfoRow>
+                      <CompactInfoLabel>Public IP:</CompactInfoLabel>
+                      <CompactInfoValue>{enrichmentData[currentIp].isPublic ? 'Yes' : 'No'}</CompactInfoValue>
+                    </CompactInfoRow>
+                    <CompactInfoRow>
+                      <CompactInfoLabel>IP Version:</CompactInfoLabel>
+                      <CompactInfoValue>IPv{enrichmentData[currentIp].ipVersion}</CompactInfoValue>
+                    </CompactInfoRow>
+                    <CompactInfoRow>
+                      <CompactInfoLabel>Abuse Score:</CompactInfoLabel>
+                      <CompactInfoValue>
+                        <CounterBadge>
+                          {enrichmentData[currentIp].abuseConfidenceScore || 0}%
+                        </CounterBadge>
+                      </CompactInfoValue>
+                    </CompactInfoRow>
+                    <CompactInfoRow>
+                      <CompactInfoLabel>Whitelisted:</CompactInfoLabel>
+                      <CompactInfoValue>{enrichmentData[currentIp].isWhitelisted ? 'Yes' : 'No'}</CompactInfoValue>
+                    </CompactInfoRow>
+                    <CompactInfoRow>
+                      <CompactInfoLabel>Tor Node:</CompactInfoLabel>
+                      <CompactInfoValue>{enrichmentData[currentIp].isTor ? 'Yes' : 'No'}</CompactInfoValue>
+                    </CompactInfoRow>
+                  </SectionContent>
+
+                  <SectionHeader onClick={() => setNetworkExpanded(!networkExpanded)}>
+                    <SectionTitle>Network Information</SectionTitle>
+                    <span>{networkExpanded ? '▼' : '▶'}</span>
+                  </SectionHeader>
+                  <SectionContent expanded={networkExpanded}>
+                    <CompactInfoRow>
+                      <CompactInfoLabel>ISP:</CompactInfoLabel>
+                      <CompactInfoValue>{enrichmentData[currentIp].isp || 'N/A'}</CompactInfoValue>
+                    </CompactInfoRow>
+                    <CompactInfoRow>
+                      <CompactInfoLabel>Domain:</CompactInfoLabel>
+                      <CompactInfoValue>{enrichmentData[currentIp].domain || 'N/A'}</CompactInfoValue>
+                    </CompactInfoRow>
+                    <CompactInfoRow>
+                      <CompactInfoLabel>Hostnames:</CompactInfoLabel>
+                      <CompactInfoValue>
+                        {(enrichmentData[currentIp].hostnames || []).slice(0, 2).join(', ') || 'None'}
+                        {enrichmentData[currentIp].hostnames?.length > 2 && ` (+${enrichmentData[currentIp].hostnames.length - 2} more)`}
+                      </CompactInfoValue>
+                    </CompactInfoRow>
+                  </SectionContent>
+
+                  <SectionHeader onClick={() => setReportsExpanded(!reportsExpanded)}>
+                    <SectionTitle>Report Statistics</SectionTitle>
+                    <span>{reportsExpanded ? '▼' : '▶'}</span>
+                  </SectionHeader>
+                  <SectionContent expanded={reportsExpanded}>
+                    <CompactInfoRow>
+                      <CompactInfoLabel>Total Reports:</CompactInfoLabel>
+                      <CompactInfoValue>{enrichmentData[currentIp].totalReports || 0}</CompactInfoValue>
+                    </CompactInfoRow>
+                    <CompactInfoRow>
+                      <CompactInfoLabel>Distinct Users:</CompactInfoLabel>
+                      <CompactInfoValue>{enrichmentData[currentIp].numDistinctUsers || 0}</CompactInfoValue>
+                    </CompactInfoRow>
+                    <CompactInfoRow>
+                      <CompactInfoLabel>Last Reported:</CompactInfoLabel>
+                      <CompactInfoValue>
+                        {enrichmentData[currentIp].lastReportedAt ? 
+                          new Date(enrichmentData[currentIp].lastReportedAt).toLocaleString() : 'Never'}
+                      </CompactInfoValue>
+                    </CompactInfoRow>
+                  </SectionContent>
+                </>
+              )}
+
+              {!currentIpDetails.is_process && (
+                <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
+                  <Button 
+                    onClick={() => {
                       handleBlockIP(currentIp, currentIpDetails.hostname);
                       handleCloseModal();
-                    }}>
-                      Block This IP Address
-                    </Button>
-                  </div>
-                )}
-              </div>
-            )}
+                    }}
+                    style={{ width: '100%' }}
+                  >
+                    Block This IP Address
+                  </Button>
+                </div>
+              )}
+            </div>
           </ModalContent>
         </ModalOverlay>
       )}
     </DashboardContainer>
   );
 };
+
+async function fetchCountryData(ip) {
+  try {
+    const response = await fetch(`https://api.iplocation.net/?ip=${ip}`);
+    const data = await response.json();
+    return data.country_name || 'Unknown';
+  } catch (err) {
+    console.error('Error fetching country data:', err);
+    return 'Unknown';
+  }
+}
 
 export default SuspiciousIPs;
