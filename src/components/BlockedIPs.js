@@ -115,7 +115,7 @@ const PageDescription = styled.p`
 
 const StatsContainer = styled.div`
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 1.5rem;
   margin-bottom: 2rem;
 `;
@@ -287,6 +287,48 @@ const LoadingText = styled.p`
   color: ${colors.white};
 `;
 
+const PaginationContainer = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 2rem;
+  padding: 1rem;
+  background: ${colors.mediumBlue};
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+`;
+
+const PaginationButton = styled.button`
+  background: ${props => props.active ? colors.accent : colors.navy};
+  color: ${colors.white};
+  border: none;
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin: 0 5px;
+  cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
+  opacity: ${props => props.disabled ? 0.5 : 1};
+  transition: all 0.3s ease;
+
+  &:hover {
+    background: ${props => props.disabled ? colors.navy : colors.lightOrange};
+    transform: ${props => props.disabled ? 'none' : 'translateY(-2px)'};
+  }
+`;
+
+const PageInfo = styled.span`
+  color: ${colors.lightGray};
+  font-weight: 500;
+`;
+
+const PerPageSelect = styled.select`
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: ${colors.navy};
+  color: ${colors.white};
+  border: none;
+  cursor: pointer;
+`;
+
 // Utility function to convert epoch time to a human-readable format
 const formatEpochTime = (epochTime) => {
   if (!epochTime) return 'N/A';
@@ -295,16 +337,25 @@ const formatEpochTime = (epochTime) => {
 };
 
 const BlockedIPs = () => {
-  const [blockedIPs, setBlockedIPs] = useState([]);
+  const [blockedIPsData, setBlockedIPsData] = useState({
+    page: 1,
+    per_page: 5,
+    total: 0,
+    data: []
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [enrichmentData, setEnrichmentData] = useState({});
+  const [currentPage, setCurrentPage] = useState(1);
+  const [perPage, setPerPage] = useState(5);
 
-  const fetchBlockedIPs = async () => {
+  const fetchBlockedIPs = async (page = 1, itemsPerPage = 5) => {
+    setLoading(true);
     try {
-      const response = await api.get('/admin/list-mal-ip');
-      setBlockedIPs(response.data);
+      // Assuming API supports pagination parameters
+      const response = await api.get(`/admin/list-mal-ip?page=${page}&per_page=${itemsPerPage}`);
+      setBlockedIPsData(response.data);
       setLoading(false);
     } catch (err) {
       setError('Failed to fetch blocked IPs');
@@ -322,31 +373,43 @@ const BlockedIPs = () => {
   };
 
   useEffect(() => {
-    fetchBlockedIPs();
-  }, []);
+    fetchBlockedIPs(currentPage, perPage);
+  }, [currentPage, perPage]);
 
   useEffect(() => {
-    if (blockedIPs.length > 0) {
-      blockedIPs.forEach((ip) => fetchEnrichmentData(ip.ip_address));
+    if (blockedIPsData.data.length > 0) {
+      blockedIPsData.data.forEach((ip) => fetchEnrichmentData(ip.ip_address));
     }
-  }, [blockedIPs]);
+  }, [blockedIPsData.data]);
 
   const handleSearch = (e) => {
     e.preventDefault();
-    const filteredIPs = blockedIPs.filter(
-      (ip) =>
-        ip.ip_address.includes(searchQuery) ||
-        ip.hostname.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-    setBlockedIPs(filteredIPs);
+    // Reset to first page when searching
+    setCurrentPage(1);
+    fetchBlockedIPs(1, perPage);
+    // Note: This would need to be updated to send the search query to the API
   };
 
   const handleResetSearch = () => {
     setSearchQuery('');
-    fetchBlockedIPs();
+    setCurrentPage(1);
+    fetchBlockedIPs(1, perPage);
   };
 
-  if (loading) {
+  const handlePageChange = (newPage) => {
+    setCurrentPage(newPage);
+    // This will trigger the useEffect that calls fetchBlockedIPs
+  };
+
+  const handlePerPageChange = (e) => {
+    const newPerPage = parseInt(e.target.value);
+    setPerPage(newPerPage);
+    setCurrentPage(1); // Reset to first page when changing items per page
+  };
+
+  const totalPages = Math.ceil(blockedIPsData.total / blockedIPsData.per_page);
+
+  if (loading && !blockedIPsData.data.length) {
     return (
       <LoadingContainer>
         <Spinner />
@@ -388,12 +451,16 @@ const BlockedIPs = () => {
         <StatsContainer>
           <StatCard>
             <StatLabel>Total Blocked IPs</StatLabel>
-            <StatValue>{blockedIPs.length}</StatValue>
+            <StatValue>{blockedIPsData.total}</StatValue>
+          </StatCard>
+          <StatCard>
+            <StatLabel>Current Page</StatLabel>
+            <StatValue>{blockedIPsData.page}</StatValue>
           </StatCard>
           <StatCard>
             <StatLabel>Enriched IPs</StatLabel>
             <StatValue>
-              {blockedIPs.filter((ip) => enrichmentData[ip.ip_address]).length}
+              {blockedIPsData.data.filter((ip) => enrichmentData[ip.ip_address]).length}
             </StatValue>
           </StatCard>
         </StatsContainer>
@@ -407,6 +474,14 @@ const BlockedIPs = () => {
           />
           <Button onClick={handleSearch}>Search</Button>
           <Button onClick={handleResetSearch}>Reset</Button>
+          <div style={{ marginLeft: 'auto' }}>
+            <PerPageSelect value={perPage} onChange={handlePerPageChange}>
+              <option value="5">5 per page</option>
+              <option value="10">10 per page</option>
+              <option value="20">20 per page</option>
+              <option value="50">50 per page</option>
+            </PerPageSelect>
+          </div>
         </FiltersContainer>
 
         {error && <div style={{ color: '#ef4444', marginBottom: '1rem' }}>{error}</div>}
@@ -421,28 +496,70 @@ const BlockedIPs = () => {
             </tr>
           </thead>
           <tbody>
-            {blockedIPs.map((ip) => (
-              <TableRow key={ip.id}>
-                <TableCell>{ip.ip_address}</TableCell>
-                <TableCell>{ip.hostname}</TableCell>
-                <TableCell>{formatEpochTime(ip.executed_time)}</TableCell>
-                <TableCell>
-                  {enrichmentData[ip.ip_address] ? (
-                    <EnrichmentTags>
-                      {enrichmentData[ip.ip_address].map((tag) => (
-                        <Tag key={tag.id} color={tag.color}>
-                          {tag.value}
-                        </Tag>
-                      ))}
-                    </EnrichmentTags>
-                  ) : (
-                    <NoDataMessage>No enrichment data found</NoDataMessage>
-                  )}
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan="4" style={{ textAlign: 'center' }}>
+                  <Spinner style={{ margin: '0 auto' }} />
                 </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              blockedIPsData.data.map((ip) => (
+                <TableRow key={ip.id}>
+                  <TableCell>{ip.ip_address}</TableCell>
+                  <TableCell>{ip.hostname}</TableCell>
+                  <TableCell>{formatEpochTime(ip.executed_time)}</TableCell>
+                  <TableCell>
+                    {enrichmentData[ip.ip_address] ? (
+                      <EnrichmentTags>
+                        {enrichmentData[ip.ip_address].map((tag) => (
+                          <Tag key={tag.id} color={tag.color}>
+                            {tag.value}
+                          </Tag>
+                        ))}
+                      </EnrichmentTags>
+                    ) : (
+                      <NoDataMessage>No enrichment data found</NoDataMessage>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </tbody>
         </Table>
+
+        <PaginationContainer>
+          <div>
+            <PaginationButton 
+              onClick={() => handlePageChange(1)} 
+              disabled={currentPage === 1}
+            >
+              First
+            </PaginationButton>
+            <PaginationButton 
+              onClick={() => handlePageChange(currentPage - 1)} 
+              disabled={currentPage === 1}
+            >
+              Previous
+            </PaginationButton>
+          </div>
+          <PageInfo>
+            Page {blockedIPsData.page} of {totalPages} ({blockedIPsData.total} total items)
+          </PageInfo>
+          <div>
+            <PaginationButton 
+              onClick={() => handlePageChange(currentPage + 1)} 
+              disabled={currentPage >= totalPages}
+            >
+              Next
+            </PaginationButton>
+            <PaginationButton 
+              onClick={() => handlePageChange(totalPages)} 
+              disabled={currentPage >= totalPages}
+            >
+              Last
+            </PaginationButton>
+          </div>
+        </PaginationContainer>
       </MainContent>
     </DashboardContainer>
   );
